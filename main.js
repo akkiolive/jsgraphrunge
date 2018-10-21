@@ -31,209 +31,199 @@
 	stage.style.width = width + 'px';
 	stage.style.height = height + 'px';
 
-
-	class Field{
-		constructor(step, color){
-			this.step = step;
-			this.width = width;
-			this.height = height;
-			this.color = color;
-		}
-
-		draw_grid(){
-			for(var x=0; x<=this.width; x+=this.step){
-				ctx.beginPath();
-				ctx.strokeStyle = this.color;
-				ctx.moveTo(x,this.height);
-				ctx.lineTo(x,0);
-				ctx.stroke();
-			}
-			for(var y=0; y<=this.height; y+=this.step){
-				ctx.beginPath();
-				ctx.strokeStyle = this.color;
-				ctx.moveTo(0,y);
-				ctx.lineTo(this.width,y);
-				ctx.stroke();
-			}
+	class Range{
+		constructor(xmin, ymin, xmax, ymax){
+			this.xmin = xmin;
+			this.ymin = ymin;
+			this.xmax = xmax;
+			this.ymax = ymax;
+			this.xdistance = this.xmax - this.xmin;
+			if(this.xdistance<0)this.xdistance=-this.xdistance;
+			this.ydistance = this.ymax - this.ymin;
+			if(this.ydistance<0)this.ydistance=-this.ydistance;
 		}
 	}
+
+	class Grid{
+		constructor(xstep, ystep){
+			this.xstep = xstep;
+			this.ystep = ystep;
+		}
+	}
+
+	var range = new Range(0,0,10,10);
+	var grid = new Grid(10,10);
 
 	class Point{
-		constructor(x,y){
+		constructor(x, y){
 			this.x = x;
 			this.y = y;
 		}
 	}
-	
 
-	class Player{
-		constructor(x, y, color, field){
-			this.x = x;
-			this.y = y;
-			this.color = color;
-			this.field = field;
-			this.trajectory = [];
-			this.movingflag = 0;
-			this.movingflagprev = 0;
-			this.movingnum = undefined;
-			this.collisionstate = 0;
-			this.area = [];
-			this.movinginarea = 1;
-			this.movinginareaprev = 1;
-			for(var i=25; i<30; i++){
-				for(var j=10; j<15; j++){
-					this.area.push(new Point(i,j));
-				}
+	var data = [];
+	for(var i = 0; i<3; i+=0.2) data.push(new Point(i, i*i));
+
+	function findmin(data){ //find minimum x in array that is included Point
+		var mini, min;
+		for(var i in data){
+			if(i==0 || min>data[i].x){
+				min = data[i].x;
+				mini = i;
+			}
+		}
+		return mini;
+	}
+	function findmax(data){
+		var maxi, max;
+		for(var i in data){
+			if(i==0 || max<data[i].x){
+				max = data[i].x;
+				maxi = i;
+			}
+		}
+		return maxi;
+	}
+
+	class DrawFlags{
+			constructor(){
+				this.border = 1;
+				this.grid = 1;
+				this.xzeroaxis = 1;
+				this.yzeroaxis = 1;
 			}
 		}
 
-		draw(){
-			//trajectory
-			if(this.movingflag){
-				for(var i=this.movingnum; i<this.trajectory.length; i++){
-					this.draw_point(this.trajectory[i], "gray");
-				}
-			}
-			
-			//area
-			for(var p of this.area){
-				this.draw_point(p, "green");
-			}
-
-			//player
-			this.draw_point(new Point(this.x, this.y), this.color);
-		}
-
-		draw_point(Point, color="gray"){
-			ctx.fillStyle = color;
-			ctx.fillRect(Point.x*this.field.step, Point.y*this.field.step, this.field.step,this.field.step);
-		}
-	
-
-		moved(){
-			//log trajectry
-			this.trajectory.push(new Point(this.x, this.y));
-
-			//collision
-			this.movinginarea = 0;
-			for(var i=0; i<this.area.length; i++){ //with area ===> expand
-				if(this.area[i].x==this.x && this.area[i].y==this.y){
-					this.movinginarea = 1;
-					if(!this.movinginareaprev){ //collision
-						console.log("collision with area ====> expand");
-						this.collisionstate = 1;
-						this.expand();
-						break;
-					}
-
-				}
-			}
-			if(this.movinginareaprev && !this.movinginarea){ //get off the area
-				console.log("start tracking");
-				this.start_track();
-			}
-			this.movinginareaprev = this.movinginarea;
-			
-			for(var i=this.movingnum+1; i<this.trajectory.length-1; i++){ //with trajectroy ===> death
-				if(this.movingflag && this.trajectory[i].x==this.x && this.trajectory[i].y==this.y){
-					console.log("collision with trajectory ====> death");
-					this.collisionstate = -1;
-					this.color = "red";
-					this.die();
-					break;
-				}
-			}
-		}	
-
-		start_track(){
-			if(!this.movinginarea)this.movingflag = 1;
-			this.trajectory.push(new Point(p.x, p.y));
-			this.movingnum = this.trajectory.length-1;
-			console.log("movingnum="+this.movingnum);
-		}
-
-		die(){
-			gameover = 1;
-			animateflag = 0;
-			this.color = "red";
-			console.log("GAME OVER!!");
-			console.log("press r key to restart!!");
-		}
-
-		expand(){
-			for(var t of this.trajectory){
-				this.area.push(t);
+		class DrawStyle{
+			constructor(style=1){
+				this.style = style;
 			}
 		}
 
+
+	class Graph{
+		constructor(x,y, width, height, range, grid){
+			this.location = new Point(x,y);
+			this.size = new Point(width,height);
+			this.range = range;
+			this.grid = grid;
+			this.dtl = new Point(undefined, undefined);
+			this.ltd = new Point(undefined, undefined);
+			this.data = [];
+			this.originingraph = new Point(undefined,undefined);
+			this.flags = new DrawFlags();
+			this.style = new DrawStyle();
+		}
+
+		setStyle(){
+
+		}
+
+		addData(data){
+			console.log("add data.");
+			for(var d of data) this.data.push(d);
+			var mini = findmin(data);
+			var maxi = findmax(data);
+			this.range = new Range(data[mini].x, data[mini].y, data[maxi].x, data[maxi].y);
+			this.dtl.x = this.size.x / this.range.xdistance;
+			this.dtl.y = this.size.y / this.range.ydistance;
+			this.ltd.x = 1.0 / this.dtl.x;
+			this.ltd.y = 1.0 / this.dtl.y;
+			this.originingraph.x  = -this.range.xmin*this.dtl.x;
+			this.originingraph.y  = -this.range.ymin*this.dtl.y;
+		}
+
+		draw(data){
+			for(var d of data) this.data.push(d);
+		}
+
+		drawPoint(point){
+			var x = point.x * this.dtl.x + this.originingraph.x + this.location.x;
+			var y = -point.y * this.dtl.y + this.originingraph.y + this.location.y;
+			ctx.fillStyle = "red";
+			ctx.beginPath();
+			ctx.arc(x,y,3, 0, 2.0*Math.PI);
+			ctx.fill();
+			console.log("draw point -> ("+x+","+y+")");
+		}
+
+		drawBorder(){
+			console.log("draw border");
+			ctx.strokeStyle = "black";
+			ctx.rect(this.location.x, this.location.y-this.size.y, this.size.x, this.size.y);
+			ctx.stroke();
+		}
+
+		drawGrid(){
+			console.log("draw grid");
+			ctx.strokeStyle = "gray";
+			for(var i=0; i<=10; i++){
+				var x = this.range.xmin + this.range.xdistance/10*i;
+				ctx.beginPath();
+				ctx.moveTo(x*this.dtl.x + this.location.x, this.location.y);
+				ctx.lineTo(x*this.dtl.x + this.location.x, this.location.y - this.size.y);
+				ctx.stroke();
+			}	
+			for(var i=0; i<=10; i++){
+				var y = this.range.ymin + this.range.ydistance/10*i;
+				ctx.beginPath();
+				ctx.moveTo(this.location.x            , -y*this.dtl.y + this.location.y);
+				ctx.lineTo(this.location.x+this.size.x, -y*this.dtl.y + this.location.y);
+				ctx.stroke();
+			}	
+		}
+
+		drawTics(xtics, ytics){
+			console.log("draw tics");
+			for(var x=this.range.xmin; x<=this.range.xmax; x+=xtics){
+				ctx.beginPath();
+				ctx.moveTo(x*this.dtl.x,0);
+				ctx.lineTo(x*this.dtl.x,3);
+			}
+		}
 
 	}
 
-	let field = new Field(5, "black");
-	let p = new Player(27, 13, "black", field);
-	var gameover = 0;
-	var animateflag = 0;
-	var vx = 1;
-	var vy = 0;
+	var graph = new Graph(25, 220, 440, 210, range, grid);
+	graph.addData(data);
+	console.log(graph);
+	graph.drawGrid();
+	graph.drawBorder();
+	graph.drawTics(1,1);
+	graph.drawPoint(new Point(2, 4))
+	for(var d of data){
+		graph.drawPoint(d);
+	}
+
+	class Runge{
+		constructor(){
+
+		}
+	}
 
 	function keydown(event) {
 		//inhibit scrolling
 		event.preventDefault();
 
-		if(gameover){
-			if(event.keyCode == 82  || event.keyCode == 13){ //r key
-				field = new Field(10, "black");
-				p = new Player(27, 13, "black", field);
-				gameover = 0;
-				animateflag = 0;
-				vx = 1;
-				vy = 0;
-			}
-			else return;
-		}
-
 		//switch the target
 		if(event.keyCode == 32){ //space key
-			this.movingflag = 1 - this.movingflag;
-			console.log("movingflag="+p.movingflag);
-			p.start_track();
 		}
 		
 		//move
-		if(!animateflag){
-			if(event.keyCode == 37) { //left
-				p.x -= 1;
-			}
-			if(event.keyCode == 38){ //up key
-				p.y -= 1;
-			}
-			if(event.keyCode == 39) { //right key
-				p.x += 1;
-			}
-			if(event.keyCode == 40) { //down key
-				p.y += 1;
-			}
-			if(37<=event.keyCode && event.keyCode<=40){
-				p.moved();
-			}
+
+		if(event.keyCode == 37) { //left
+
 		}
-		else{
-			if(event.keyCode == 37) { //left
-				vx = -1;
-				vy = 0;
-			}
-			if(event.keyCode == 38){ //up key
-				vx = 0;
-				vy = -1;
-			}
-			if(event.keyCode == 39) { //right key
-				vx = 1;
-				vy = 0;
-			}
-			if(event.keyCode == 40) { //down key
-				vx = 0;
-				vy = 1;
-			}
+		if(event.keyCode == 38){ //up key
+
+		}
+		if(event.keyCode == 39) { //right key
+
+		}
+		if(event.keyCode == 40) { //down key
+
+		}
+		if(37<=event.keyCode && event.keyCode<=40){
 
 		}
 
@@ -250,21 +240,21 @@
 
 	function redraw(){
 		//draw
-		ctx.clearRect(0,0,width,height); //clear
-		field.draw_grid();
-		p.draw();
+		//ctx.clearRect(0,0,width,height); //clear
+
 	}
 
+	var animateflag = 0
 	function animate(){
 		if(!animateflag) return;
-		p.x += vx;
-		p.y += vy;
-		p.moved();
+
 		redraw();
 	}
 
 	redraw();
 	setInterval(animate, 80);
+
+
 		
 
 })();
