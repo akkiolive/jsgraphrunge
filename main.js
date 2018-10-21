@@ -1,6 +1,5 @@
 (function(){
-	'use strict';
-
+	
 	//element and context
 	var stage = document.getElementById('stage'); //element
 	var ctx; //context
