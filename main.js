@@ -1,6 +1,5 @@
 (function(){
-	'use strict';
-	
+
 	header('Content-Type: application/javascript'); 
 	
 	//element and context
