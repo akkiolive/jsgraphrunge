@@ -1,6 +1,8 @@
 (function(){
 	'use strict';
-
+	
+	header('Content-Type: application/javascript'); 
+	
 	//element and context
 	var stage = document.getElementById('stage'); //element
 	var ctx; //context
