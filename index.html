@@ -17,6 +17,27 @@
 	<canvas id="stage" width="480" height="260">
 		Canvas not supported!
 	</canvas>
+	<br>
+	<br>
+	<form name="formf">
+		f(x[0],...) = dx/dt = <input type="text" name="inputf" id="inputfid" value="-10*x[0]+10*x[1]"><br>
+		g(x[0],...) = dy/dt = <input type="text" name="inputg" id="inputfid" value="this.param.r*x[0]-x[1]-x[0]*x[2]"><br>
+		h(x[0],...) = dz/dt = <input type="text" name="inputh" id="inputfid" value="-8/3*x[2]+x[0]*x[1]"><br>
+		<input type="button" id="inputfb" value="input func">
+		<input type="button" id="clearanddrawb" value="clear&draw">
+		<input type="button" id="resetb" value="reset">
+		<input type="button" id="adddatab" value="add data">
+		<input type="button" id="drawb" value="draw">
+	
+	</form>
+	<br>
+	<form name="formparam">
+		<input type="text" value="r">=<input type="text" value="4"><br>
+		<input type="text" value="">=<input type="text" value=""><br>
+		<input type="button" id="inputparamb" value="input params">
+	</form>
+	<br>
+	message: <div id="divmessage"></div><br>
 	<script src="main.js"></script>
 	
 
